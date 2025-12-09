@@ -26,6 +26,13 @@ To run the parser:
 go run cmd/main.go
 ```
 
+To compile the parser:
+
+```bash
+go build -o homeVision cmd/main.go
+./homeVision
+```
+
 This will create an `output` directory and extract the files there.
 
 ### Metadata Limit Enforcement
