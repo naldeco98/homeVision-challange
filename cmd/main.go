@@ -12,6 +12,13 @@ import (
 )
 
 func main() {
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	maxMetaSize := flag.Int64("max-meta-size", 10*1024*1024, "Maximum allowed size for metadata in bytes")
 	flag.Parse()
 
@@ -20,14 +27,15 @@ func main() {
 
 	// Ensure output directory exists
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating output directory: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("creating output directory: %w", err)
 	}
 
 	f, err := os.Open(inputFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error opening input file: %v\n", err)
-		os.Exit(1)
+		if os.IsNotExist(err) {
+			return fmt.Errorf("input file %q not found", inputFile)
+		}
+		return fmt.Errorf("opening input file: %w", err)
 	}
 	defer f.Close()
 
@@ -54,8 +62,7 @@ func main() {
 				fmt.Println("Warning: DOCU chunk without FILENAME")
 				// Skip content
 				if err := skipContent(f, chunk.ContentLen); err != nil {
-					fmt.Fprintf(os.Stderr, "Error skipping content: %v\n", err)
-					os.Exit(1)
+					return fmt.Errorf("skipping content: %w", err)
 				}
 				continue
 			}
@@ -63,28 +70,26 @@ func main() {
 			outputPath := filepath.Join(outputDir, filename)
 			outFile, err := os.Create(outputPath)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error creating output file: %v\n", err)
-				os.Exit(1)
+				return fmt.Errorf("creating output file: %w", err)
 			}
 
 			// Copy content to file
 			_, err = io.CopyN(outFile, f, int64(chunk.ContentLen))
 			outFile.Close()
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error writing content to file: %v\n", err)
-				os.Exit(1)
+				return fmt.Errorf("writing content to file: %w", err)
 			}
 
 			fmt.Printf("Extracted: %s (%d bytes)\n", filename, chunk.ContentLen)
 		} else {
 			// Skip content for other chunks
 			if err := skipContent(f, chunk.ContentLen); err != nil {
-				fmt.Fprintf(os.Stderr, "Error skipping content: %v\n", err)
-				os.Exit(1)
+				return fmt.Errorf("skipping content: %w", err)
 			}
 		}
 	}
 	fmt.Println("Extraction complete.")
+	return nil
 }
 
 func skipContent(seeker io.Seeker, length uint32) error {
