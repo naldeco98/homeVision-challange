@@ -3,6 +3,7 @@ package parser
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"io"
 	"strings"
 	"testing"
@@ -59,9 +60,8 @@ func TestParser_Next_MetaLenTooLarge(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected error for large MetaLen, got nil")
 	}
-	expected := "metadata length 2000 exceeds maximum allowed size 1024"
-	if err.Error() != expected {
-		t.Errorf("Expected error %q, got %q", expected, err.Error())
+	if !errors.Is(err, ErrMetaTooLarge) {
+		t.Errorf("Expected error ErrMetaTooLarge, got %v", err)
 	}
 }
 

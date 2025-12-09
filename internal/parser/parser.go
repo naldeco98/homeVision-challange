@@ -4,10 +4,18 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
 	"unicode"
+)
+
+var (
+	// ErrMetaTooLarge is returned when the metadata length exceeds the maximum allowed size.
+	ErrMetaTooLarge = errors.New("metadata exceeds maximum size")
+	// ErrInvalidTag is returned when a chunk tag contains non-printable characters.
+	ErrInvalidTag = errors.New("invalid tag found")
 )
 
 // ChunkHeader represents the fixed-size header of a chunk
@@ -55,12 +63,12 @@ func (p *Parser) Next() (*Chunk, error) {
 
 	// Validate MetaLen against maxMetaSize to prevent large allocations
 	if int64(header.MetaLen) > p.maxMetaSize {
-		return nil, fmt.Errorf("metadata length %d exceeds maximum allowed size %d", header.MetaLen, p.maxMetaSize)
+		return nil, ErrMetaTooLarge
 	}
 
 	tag := string(header.Tag[:])
 	if !isValidTag(tag) {
-		return nil, fmt.Errorf("invalid tag found: %q", tag)
+		return nil, fmt.Errorf("%w: %q", ErrInvalidTag, tag)
 	}
 
 	// Read Metadata

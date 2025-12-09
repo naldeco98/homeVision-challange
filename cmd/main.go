@@ -41,10 +41,10 @@ func main() {
 		if err != nil {
 			if errors.Is(err, io.ErrUnexpectedEOF) {
 				fmt.Println("Warning: Reached end of file with trailing bytes.")
-				break
+			} else {
+				fmt.Fprintf(os.Stderr, "Error parsing chunk: %v\n", err)
 			}
-			fmt.Fprintf(os.Stderr, "Error parsing chunk: %v\n", err)
-			os.Exit(1)
+			break
 		}
 
 		// Process Content
