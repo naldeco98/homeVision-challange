@@ -35,6 +35,21 @@ go build -o homeVision cmd/main.go
 
 This will create an `output` directory and extract the files there.
 
+### Example Output
+
+Here is the output from a successful run against the provided `sample.env`:
+
+```
+Extracted: homer-simpson.jpg (39548 bytes)
+Extracted: 0-INC2.xml (5777 bytes)
+Extracted: 1004UADMISMOUAD2.6GSE.xml (16367 bytes)
+Extracted: 1-REO2.xml (9723 bytes)
+Extracted: 2-1004UAD.xml (18653 bytes)
+Extracted: content.txt (704 bytes)
+Warning: Reached end of file with trailing bytes.
+Extraction complete.
+```
+
 ### Metadata Limit Enforcement
 Running with a strict limit verifies the validation logic:
 
