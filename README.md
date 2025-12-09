@@ -35,7 +35,7 @@ Running with a strict limit verifies the validation logic:
 go run cmd/main.go -max-meta-size=1
 ```
 
-*Expresed in bytes, the maximum allowed size for metadata is 10MB.*
+*Expressed in bytes, the maximum allowed size for metadata is 10MB.*
 
 When the limit is exceeded, the program will print an error message and exit.
 
