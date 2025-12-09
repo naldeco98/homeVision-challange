@@ -48,7 +48,13 @@ To run the analyzer:
 go run internal/analyzer/main.go
 ```
 
-This will create an `output` directory and extract the files there.
+The analyzer also supports the `-max-meta-size` flag:
+
+```bash
+go run internal/analyzer/main.go -max-meta-size=1048576
+```
+
+This will print the structure of the `.env` file (chunks, metadata, sizes) to the console without extracting the file contents.
 
 ## Bonus: Production Considerations
 If this were a production release, I would make the following improvements:
