@@ -28,6 +28,17 @@ go run cmd/main.go
 
 This will create an `output` directory and extract the files there.
 
+### Metadata Limit Enforcement
+Running with a strict limit verifies the validation logic:
+
+```bash
+go run cmd/main.go -max-meta-size=1
+```
+
+*Expresed in bytes, the maximum allowed size for metadata is 10MB.*
+
+When the limit is exceeded, the program will print an error message and exit.
+
 ### Analyzer Tool
 A separate analyzer tool is available to inspect the raw chunks of the `.env` file without extracting content. This is useful for debugging or understanding the file structure.
 

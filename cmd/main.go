@@ -4,11 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
+	"flag"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode"
 )
 
 // ChunkHeader represents the fixed-size header of a chunk
@@ -21,16 +23,21 @@ type ChunkHeader struct {
 type Metadata map[string]string
 
 func main() {
+	maxMetaSize := flag.Int64("max-meta-size", 10*1024*1024, "Maximum allowed size for metadata in bytes")
+	flag.Parse()
+
 	inputFile := "sample.env"
 	outputDir := "output"
 
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "Error creating output directory: %v\n", err)
+		os.Exit(1)
 	}
 
 	f, err := os.Open(inputFile)
 	if err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "Error opening input file: %v\n", err)
+		os.Exit(1)
 	}
 	defer f.Close()
 
@@ -47,17 +54,27 @@ func main() {
 				fmt.Println("Reached end of file with trailing bytes.")
 				break
 			}
-			panic(err)
+			fmt.Fprintf(os.Stderr, "Error reading header: %v\n", err)
+			os.Exit(1)
+		}
+
+		if int64(header.MetaLen) > *maxMetaSize {
+			fmt.Fprintf(os.Stderr, "Error: metadata length %d exceeds maximum allowed size %d\n", header.MetaLen, *maxMetaSize)
+			os.Exit(1)
 		}
 
 		tag := string(header.Tag[:])
-		// fmt.Printf("Processing chunk: %s\n", tag)
+		if !isValidTag(tag) {
+			fmt.Fprintf(os.Stderr, "Error: invalid tag found: %q\n", tag)
+			os.Exit(1)
+		}
 
 		// Read Metadata
 		metaBytes := make([]byte, header.MetaLen)
 		_, err = io.ReadFull(f, metaBytes)
 		if err != nil {
-			panic(err)
+			fmt.Fprintf(os.Stderr, "Error reading metadata: %v\n", err)
+			os.Exit(1)
 		}
 
 		metadata := parseMetadata(metaBytes)
@@ -66,7 +83,8 @@ func main() {
 		var contentLen uint32
 		err = binary.Read(f, binary.LittleEndian, &contentLen)
 		if err != nil {
-			panic(err)
+			fmt.Fprintf(os.Stderr, "Error reading content length: %v\n", err)
+			os.Exit(1)
 		}
 
 		// Process Content
@@ -77,7 +95,8 @@ func main() {
 				// Skip content
 				_, err = f.Seek(int64(contentLen), io.SeekCurrent)
 				if err != nil {
-					panic(err)
+					fmt.Fprintf(os.Stderr, "Error skipping content: %v\n", err)
+					os.Exit(1)
 				}
 				continue
 			}
@@ -85,14 +104,16 @@ func main() {
 			outputPath := filepath.Join(outputDir, filename)
 			outFile, err := os.Create(outputPath)
 			if err != nil {
-				panic(err)
+				fmt.Fprintf(os.Stderr, "Error creating output file: %v\n", err)
+				os.Exit(1)
 			}
 
 			// Copy content to file
 			_, err = io.CopyN(outFile, f, int64(contentLen))
 			outFile.Close()
 			if err != nil {
-				panic(err)
+				fmt.Fprintf(os.Stderr, "Error writing content to file: %v\n", err)
+				os.Exit(1)
 			}
 
 			fmt.Printf("Extracted: %s (%d bytes)\n", filename, contentLen)
@@ -100,11 +121,21 @@ func main() {
 			// Skip content for other chunks
 			_, err = f.Seek(int64(contentLen), io.SeekCurrent)
 			if err != nil {
-				panic(err)
+				fmt.Fprintf(os.Stderr, "Error skipping content: %v\n", err)
+				os.Exit(1)
 			}
 		}
 	}
 	fmt.Println("Extraction complete.")
+}
+
+func isValidTag(tag string) bool {
+	for _, r := range tag {
+		if !unicode.IsPrint(r) {
+			return false
+		}
+	}
+	return true
 }
 
 func parseMetadata(data []byte) Metadata {
